@@ -1,0 +1,11 @@
+,WordForm,Frequency,Outcomes,Cues
+1,hand,10,"['hand', 'NIL']","['h', 'a', 'n', 'd']"
+2,hands,20,"['hand', 'PLURAL']","['h', 'a', 'n', 'd', 's']"
+3,land,8,"['land', 'NIL']","['l', 'a', 'n', 'd']"
+4,lands,3,"['land', 'PLURAL']","['l', 'a', 'n', 'd', 's']"
+5,and,35,"['and', 'NIL']","['a', 'n', 'd']"
+6,sad,18,"['sad', 'NIL']","['s', 'a', 'd']"
+7,as,35,"['as', 'NIL']","['a', 's']"
+8,lad,102,"['lad', 'NIL']","['l', 'a', 'd']"
+9,lad,54,"['lad', 'PLURAL']","['l', 'a', 'd']"
+10,lass,134,"['lass', 'NIL']","['l', 'a', 's', 's']"
