@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 
+import alias
+
 def explode(cues):
     if isinstance(cues, basestring):
         cues = cues.split('_')
@@ -74,13 +76,13 @@ def ndl(data):
     ## Naive discriminative learning (Baayen et al. 2011)
 
     vec = DictVectorizer(dtype=float,sparse=False)
-    M = vec.fit_transform([explode(c) for c in data.Cues]) * data.Frequency[:,np.newaxis]
+    D = vec.fit_transform([explode(c) for c in data.Cues]) * data.Frequency[:,np.newaxis]
 
     # Make co-occurrence matrix C
 
     n = len(vec.get_feature_names())
     C = np.zeros((n,n))
-    for row in M:
+    for row in D:
         for nz in np.nonzero(row):
             C[nz] += row    
 
@@ -96,7 +98,7 @@ def ndl(data):
 
     O = np.zeros((len(vec.get_feature_names()),len(out.get_feature_names())))
     for i in xrange(len(X)):
-        for nz in np.nonzero(M[i]):
+        for nz in np.nonzero(D[i]):
             O[nz] += X[i]
 
     # Normalize
@@ -122,4 +124,52 @@ def activation(cues,W):
         
     return pd.Series(A,index=W.columns)
     
+def rw(data,Alpha=0.1,Beta=0.1,Lambda=1.0,M=50000):
+
+    # code cues
+
+    cues = DictVectorizer(dtype=float, sparse=False)
+    D = cues.fit_transform([explode(c) for c in data.Cues])
+    
+    # code outcomes
+
+    out = DictVectorizer(dtype=float, sparse=False)
+    O = out.fit_transform([explode(c) for c in data.Outcomes])
+
+    # weight matrix
+
+    W = np.zeros((len(cues.get_feature_names()), len(out.get_feature_names())))
+
+    E = data.Frequency / sum(data.Frequency)
+    rand = alias.multinomial(E)
+
+    # intermediate results
+
+    #Vtotal = np.empty((len(out.get_feature_names())))
+    #L = np.empty_like(Vtotal)
+    #Vdelta = np.empty_like(Vtotal)
+    
+    
+    iter = 0
+    while iter < M:
+    
+        iter += 1
+
+        # choose a training instance
+        
+        item = rand.draw()
+
+        # update weights
+
+        #np.dot(W.T, D[item,:], out=Vtotal)
+        #np.multiply(O[item,:], Lambda, out=L)
+        #np.subtract(L, Vtotal, out=Vdelta)
+        #Vdelta *= (Alpha * Beta)
+
+        Vtotal = np.dot(W.T, D[item,:])
+        L = O[item,:] * Lambda
+        Vdelta = Alpha * Beta * (L - Vtotal)
+        W += D[item,:,np.newaxis] * Vdelta
+
+    return pd.DataFrame(W,columns=out.get_feature_names(),index=cues.get_feature_names())                
         
