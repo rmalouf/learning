@@ -2,7 +2,7 @@
 
 ## Rescorla-Wagner learning model
 
-from itertools import izip
+from itertools import repeat
 from time import time
 
 import pandas as pd
@@ -10,7 +10,8 @@ import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 
 import ndl
-import rw
+
+from multiprocessing import Pool
 
 def predict(data,weights):
 
@@ -34,28 +35,30 @@ def predict(data,weights):
         predict.append(tuple(res))
     return predict
 
+def simulate(i):
+
+    global data
+    W = ndl.rw(data,M=100000)
+    return i,W
+
 def main():
 
-    data = pd.read_csv('serbian.csv')
-
+    global data
+    
     # baseline using equilibrium equations
-
+    data = pd.read_csv('serbian.csv')
     W0 = ndl.ndl(data)
-    #P0 = predict(data,W0)
-
     diff = np.zeros_like(W0)
-    acc = 0.0
+    
+    R = 1000
 
-    for i in xrange(10):
-        W = rw.train(data,M=100)
+    P = Pool(3)
+    for i,W in P.imap_unordered(simulate,xrange(R)):
         diff += abs(W - W0)
-        #P = predict(data,W)
-        #acc += sum(p == p0 for p,p0 in izip(P,P0)) / float(len(P))
-        print i,acc
-    diff = diff / 10.
-    acc = acc / 10.
-    print acc,diff.max(),diff.min(),np.mean(diff)
+        print i,diff.max(),diff.min(),np.mean(diff)
+    diff = diff / R
+    print diff.max(),diff.min(),np.mean(diff)
 
 if __name__ == '__main__':
     main()
-                           
+

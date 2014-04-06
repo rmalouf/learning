@@ -1,2 +1,7 @@
 *.pyc
 .ipynb_checkpoints
+nohup.out
+build
+_ndl.c
+_ndl.so
+hosts

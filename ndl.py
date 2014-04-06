@@ -124,16 +124,29 @@ def activation(cues,W):
         
     return pd.Series(A,index=W.columns)
     
+def _rwUpdate(W,D,O,Alpha,Beta,Lambda):
+    Vtotal = np.dot(W.T, D)
+    L = O * Lambda
+    Vdelta = Alpha * Beta * (L - Vtotal)
+    W += D[:,np.newaxis] * Vdelta
+
+try:
+    import _ndl
+    rwUpdate = _ndl.rwUpdate
+except ImportError:
+    rwUpdate = _rwUpdate
+        
+
 def rw(data,Alpha=0.1,Beta=0.1,Lambda=1.0,M=50000):
 
     # code cues
 
-    cues = DictVectorizer(dtype=float, sparse=False)
+    cues = DictVectorizer(dtype=np.int, sparse=False)
     D = cues.fit_transform([explode(c) for c in data.Cues])
     
     # code outcomes
 
-    out = DictVectorizer(dtype=float, sparse=False)
+    out = DictVectorizer(dtype=np.int, sparse=False)
     O = out.fit_transform([explode(c) for c in data.Outcomes])
 
     # weight matrix
@@ -143,33 +156,12 @@ def rw(data,Alpha=0.1,Beta=0.1,Lambda=1.0,M=50000):
     E = data.Frequency / sum(data.Frequency)
     rand = alias.multinomial(E)
 
-    # intermediate results
-
-    #Vtotal = np.empty((len(out.get_feature_names())))
-    #L = np.empty_like(Vtotal)
-    #Vdelta = np.empty_like(Vtotal)
-    
-    
     iter = 0
-    while iter < M:
-    
+    while iter < M:   
         iter += 1
-
-        # choose a training instance
-        
         item = rand.draw()
-
-        # update weights
-
-        #np.dot(W.T, D[item,:], out=Vtotal)
-        #np.multiply(O[item,:], Lambda, out=L)
-        #np.subtract(L, Vtotal, out=Vdelta)
-        #Vdelta *= (Alpha * Beta)
-
-        Vtotal = np.dot(W.T, D[item,:])
-        L = O[item,:] * Lambda
-        Vdelta = Alpha * Beta * (L - Vtotal)
-        W += D[item,:,np.newaxis] * Vdelta
+        rwUpdate(W,D[item,:],O[item,:],Alpha,Beta,Lambda)
 
     return pd.DataFrame(W,columns=out.get_feature_names(),index=cues.get_feature_names())                
+        
         
