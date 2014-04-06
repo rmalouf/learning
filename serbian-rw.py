@@ -2,6 +2,8 @@
 
 ## Rescorla-Wagner learning model
 
+import os
+
 from itertools import repeat
 from time import time
 
@@ -12,6 +14,9 @@ from sklearn.feature_extraction import DictVectorizer
 import ndl
 
 from multiprocessing import Pool
+
+# http://stackoverflow.com/questions/15639779
+#os.system("taskset -p 0xff %d" % os.getpid())
 
 def predict(data,weights):
 
@@ -52,7 +57,7 @@ def main():
     
     R = 1000
 
-    P = Pool(3)
+    P = Pool(6)
     for i,W in P.imap_unordered(simulate,xrange(R)):
         diff += abs(W - W0)
         print i,diff.max(),diff.min(),np.mean(diff)
