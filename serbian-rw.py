@@ -2,10 +2,9 @@
 
 ## Rescorla-Wagner learning model
 
-import os
-
-from itertools import repeat
+import os,sys
 from time import time
+from multiprocessing import Pool
 
 import pandas as pd
 import numpy as np
@@ -13,37 +12,12 @@ from sklearn.feature_extraction import DictVectorizer
 
 import ndl
 
-from multiprocessing import Pool
-
 # http://stackoverflow.com/questions/15639779
-#os.system("taskset -p 0xff %d" % os.getpid())
-
-def predict(data,weights):
-
-    num = ['Sg','Pl']
-    case = ['nom','gen','dat','acc','ins','loc']
-    infl = num + case
-    predict = [ ]
-    for cue in data.Cues:
-        A = ndl.activation(cue,weights)
-        A.sort(ascending=False)
-        res = [ None, None, None ]
-        for ind in A.index:
-            if ind in num:
-                res[2] = ind
-            elif ind in case:
-                res[1] = ind
-            else:
-                res[0] = ind
-            if not None in res:
-                break
-        predict.append(tuple(res))
-    return predict
+os.system("taskset -p 0xff %d" % os.getpid())
 
 def simulate(i):
-
     global data
-    W = ndl.rw(data,M=100000)
+    W = ndl.rw(data,M=1000000)
     return i,W
 
 def main():
@@ -54,15 +28,31 @@ def main():
     data = pd.read_csv('serbian.csv')
     W0 = ndl.ndl(data)
     diff = np.zeros_like(W0)
+    W = np.zeros_like(W0)
     
+    # simulate learning for R individuals
     R = 1000
-
+    now = time()
     P = Pool(6)
-    for i,W in P.imap_unordered(simulate,xrange(R)):
-        diff += abs(W - W0)
-        print i,diff.max(),diff.min(),np.mean(diff)
+    for i,W1 in P.imap_unordered(simulate,xrange(R)):
+        diff += abs(W1 - W0)
+        W += W1
+        print >>sys.stderr,i,time()-now
     diff = diff / R
-    print diff.max(),diff.min(),np.mean(diff)
+    W = W / R
+
+    # get cue-outcome co-occurrence frequencies
+    cues = DictVectorizer(dtype=int,sparse=False)
+    D = cues.fit_transform([ndl.explode(c) for c in data.Cues])
+    out = DictVectorizer(dtype=int,sparse=False)
+    X = out.fit_transform([ndl.explode(c) for c in data.Outcomes]) * data.Frequency[:,np.newaxis]
+    O = np.zeros_like(W0)
+    for i in xrange(len(X)):
+        for nz in np.nonzero(D[i]):
+            O[nz] += X[i]
+
+    # save results
+    np.savez('serbian-rw',diff=diff,W0=W0.as_matrix(),O=O,W=W)
 
 if __name__ == '__main__':
     main()
