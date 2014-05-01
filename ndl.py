@@ -114,7 +114,7 @@ def ndl(data):
     
     return pd.DataFrame(W,columns=out.get_feature_names(),index=vec.get_feature_names())
     
-def activation(cues,W):
+def activation(cues, W):
 
     A = np.zeros(len(W.columns))
     if isinstance(cues, basestring):
@@ -124,7 +124,17 @@ def activation(cues,W):
         
     return pd.Series(A,index=W.columns)
     
-def _rwUpdate(W,D,O,Alpha,Beta,Lambda):
+    
+    
+def activation(cues, W):
+
+    if isinstance(cues, basestring):
+        cues = cues.split('_')
+    return W[[(c in cues) for c in W.index]].sum()
+
+
+
+def _rwUpdate(W, D, O, Alpha, Beta, Lambda):
     Vtotal = np.dot(W.T, D)
     L = O * Lambda
     Vdelta = Alpha * Beta * (L - Vtotal)
@@ -137,7 +147,7 @@ except ImportError:
     rwUpdate = _rwUpdate
         
 
-def rw(data,Alpha=0.1,Beta=0.1,Lambda=1.0,M=50000):
+def rw(data, Alpha=0.1, Beta=0.1, Lambda=1.0, M=50000, trajectory=False):
 
     # code cues
 
@@ -155,13 +165,19 @@ def rw(data,Alpha=0.1,Beta=0.1,Lambda=1.0,M=50000):
 
     E = data.Frequency / sum(data.Frequency)
     rand = alias.multinomial(E)
+    history = dict()
 
     iter = 0
     while iter < M:   
         iter += 1
         item = rand.draw()
-        rwUpdate(W,D[item,:],O[item,:],Alpha,Beta,Lambda)
+        rwUpdate(W, D[item,:], O[item,:], Alpha, Beta, Lambda)
+        if trajectory:
+            history[iter] = pd.DataFrame(W, columns=out.get_feature_names(), index=cues.get_feature_names(), copy=True)
 
-    return pd.DataFrame(W,columns=out.get_feature_names(),index=cues.get_feature_names())                
+    if trajectory:
+        return pd.Panel.from_dict(history)
+    else:
+        return pd.DataFrame(W, columns=out.get_feature_names(), index=cues.get_feature_names())                
         
         
