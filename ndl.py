@@ -147,7 +147,7 @@ except ImportError:
     rwUpdate = _rwUpdate
         
 
-def rw(data, Alpha=0.1, Beta=0.1, Lambda=1.0, M=50000, trajectory=False):
+def rw(data, Alpha=0.1, Beta=0.1, Lambda=1.0, M=50000, distribution=None, trajectory=False):
 
     # code cues
 
@@ -163,14 +163,20 @@ def rw(data, Alpha=0.1, Beta=0.1, Lambda=1.0, M=50000, trajectory=False):
 
     W = np.zeros((len(cues.get_feature_names()), len(out.get_feature_names())))
 
-    E = data.Frequency / sum(data.Frequency)
-    rand = alias.multinomial(E)
+    if distribution is None:
+        E = data.Frequency / sum(data.Frequency)
+        rand = alias.multinomial(E)
     history = dict()
 
     iter = 0
     while iter < M:   
         iter += 1
-        item = rand.draw()
+        if distribution is None:
+            item = rand.draw()
+        else:
+            item = distribution() - 1
+            while item >= len(data):
+                item = distribution() - 1
         rwUpdate(W, D[item,:], O[item,:], Alpha, Beta, Lambda)
         if trajectory:
             history[iter] = pd.DataFrame(W, columns=out.get_feature_names(), index=cues.get_feature_names(), copy=True)

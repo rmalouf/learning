@@ -20,18 +20,19 @@ import ndl
 
 class Simulation(object):
 
-    def __init__(self, func, data, MAX_M=250, P=100):
+    def __init__(self, func, data, distribution=None, MAX_M=250, P=100):
     
         self.func = func
         self.MAX_M = MAX_M
         self.P = P
         self.data = data
+        self.distribution = distribution
         
     def activation(self, W):
         return pd.DataFrame([ndl.activation(c, W) for c in self.data.Cues], index=self.data.index)
 
     def accuracy(self,M):
-        W = ndl.rw(self.data, M=M)
+        W = ndl.rw(self.data, distribution=self.distribution, M=M)
         A = self.activation(W)
         return np.mean(A.idxmax(1) == self.data['Outcomes'])
 
@@ -51,12 +52,12 @@ def result(P,exp):
     #plt.yscale('log')
     plt.suptitle('Proportion of learners who label all items correctly')
 
-def experiment(data, M=250, P=100, view=None):
+def experiment(data, distribution=None, M=250, P=100, view=None):
     result = { }
     for func in [ sg_pl, sg_du_pl, sg_du_tr_pl, sg_du_tr_qu_pl, du_notdu ]:
         tmp = pd.DataFrame(data)
         tmp['Outcomes'] = [func(i) for i in tmp['Number']]
-        project = Simulation(func, tmp, MAX_M=M, P=P)
+        project = Simulation(func, tmp, distribution=distribution, MAX_M=M, P=P)
         if view:
             result[func.__name__] = view.map(run, ((project, i) for i in xrange(1,M)))
         else:
