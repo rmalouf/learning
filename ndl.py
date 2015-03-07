@@ -166,20 +166,27 @@ def rw(data, Alpha=0.1, Beta=0.1, Lambda=1.0, M=50000, distribution=None, trajec
     if distribution is None:
         E = data.Frequency / sum(data.Frequency)
         rand = alias.multinomial(E)
+        
     history = dict()
 
-    iter = 0
-    while iter < M:   
-        iter += 1
+    i = 0
+    
+    while i < M:
+        i += 1
+        
         if distribution is None:
             item = rand.draw()
+            
         else:
             item = distribution() - 1
+            
             while item >= len(data):
                 item = distribution() - 1
+                
         rwUpdate(W, D[item,:], O[item,:], Alpha, Beta, Lambda)
+        
         if trajectory:
-            history[iter] = pd.DataFrame(W, columns=out.get_feature_names(), index=cues.get_feature_names(), copy=True)
+            history[i] = pd.DataFrame(W, columns=out.get_feature_names(), index=cues.get_feature_names(), copy=True)
 
     if trajectory:
         return pd.Panel.from_dict(history)
